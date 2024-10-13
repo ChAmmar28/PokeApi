@@ -1,38 +1,68 @@
-let AUrl = "https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0";
-let container = document.querySelector(".container");
+import { createPokemonCard } from "./createPokeCard.js";
+import { fetching } from "./fetching.js";
 
-const fetching = async (url) => {
-  try {
-    const response = await fetch(url, { method: "GET" });
-    let data = await response.json();
-    console.log(data);
-  } catch (error) {}
+const baseUrl = "https://pokeapi.co/api/v2/";
+const container = document.querySelector(".container");
+const pageIndex = document.querySelector(".pageCount");
+const next = document.querySelector(".nextBtn");
+const back = document.querySelector(".backBtn");
+const renderCount = 10;
+const pagesData = await fetching(baseUrl + "pokemon?limit=100000&offset=0");
+const maxPagesData = Math.ceil(pagesData.count / renderCount);
+let currentPage;
+
+if (!localStorage.getItem("page")) {
+  localStorage.setItem("page", 0);
+}
+
+pageIndex.innerText = +localStorage.getItem("page") + 1;
+
+const render = async () => {
+  currentPage = +localStorage.getItem("page");
+
+  toggleButtons(true);
+
+  container.innerHTML = "";
+
+  let mutantUrl =
+    baseUrl +
+    `pokemon?limit=${renderCount}&offset=${
+      renderCount * localStorage.getItem("page")
+    }`;
+  console.log(mutantUrl);
+
+  const rawData = await fetching(mutantUrl);
+
+  rawData["results"].forEach((item) => {
+    createPokemonCard(item, container);
+  });
+
+  toggleButtons(false);
 };
 
-const createPokemonCard = () => {
-  const fetchingRes = fetching(AUrl);
+next.addEventListener("click", () => {
+  if (currentPage + 1 < maxPagesData) {
+    localStorage.setItem("page", currentPage + 1);
+    pageIndex.innerText = currentPage + 2;
+    render();
+  } else {
+    console.log("end");
+  }
+});
 
-  let wrapper = document.createElement("div");
-  let image = document.createElement("img");
-  let textContainer = document.createElement("div");
-  let headline = document.createElement("p");
-  let shortDescription = document.createElement("p");
+back.addEventListener("click", () => {
+  if (currentPage > 0) {
+    localStorage.setItem("page", currentPage - 1);
+    pageIndex.innerText = currentPage;
+    render();
+  } else {
+    console.log("start");
+  }
+});
 
-  wrapper.className = "wrapper";
-  image.className = "cardImage";
-  textContainer.className = "textContainer";
-  headline.className = "headline";
-  shortDescription.className = "shortDescription";
-
-  console.log(fetchingRes["result"]);
-
-  textContainer.append(headline);
-  textContainer.append(shortDescription);
-
-  wrapper.append(image);
-  wrapper.append(textContainer);
-
-  container.append(wrapper);
+const toggleButtons = (isDisabled) => {
+  next.disabled = isDisabled;
+  back.disabled = isDisabled;
 };
 
-createPokemonCard();
+render();
